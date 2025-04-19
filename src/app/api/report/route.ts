@@ -3,27 +3,43 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get("url");
 
-  if (!url || !url.startsWith("https://www.sec.gov/")) {
-    return NextResponse.json({ error: "Invalid or missing SEC URL" }, { status: 400 });
+  if (!url || !url.startsWith("http")) {
+    return NextResponse.json({ error: "Invalid or missing URL" }, { status: 400 });
   }
 
   try {
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "HackathonApp/1.0 sriramsendhil@gmail.com",
+        "User-Agent": "HackathonApp/1.0 sriramsendhil@gmail.com", // helps with SEC.gov
       },
     });
 
-    const contentType = res.headers.get("content-type") || "text/html";
-    const body = await res.text();
+    if (!res.ok) {
+      return NextResponse.json({ error: "Failed to fetch resource" }, { status: res.status });
+    }
 
-    return new NextResponse(body, {
+    const contentType = res.headers.get("content-type") || "application/octet-stream";
+
+    // Handle PDF separately
+    if (contentType.includes("pdf")) {
+      const buffer = await res.arrayBuffer();
+      return new NextResponse(buffer, {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": "inline",
+        },
+      });
+    }
+
+    // Fallback: treat as HTML or text
+    const text = await res.text();
+    return new NextResponse(text, {
       headers: {
         "Content-Type": contentType,
-        // critical: DO NOT send X-Frame-Options header
       },
     });
   } catch (err) {
-    return NextResponse.json({ error: "Failed to fetch SEC content" }, { status: 500 });
+    console.error("Proxy error:", err);
+    return NextResponse.json({ error: "Internal proxy error" }, { status: 500 });
   }
 }

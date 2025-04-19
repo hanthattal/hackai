@@ -3,12 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-
 export default function Home() {
-  
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isIndia, setIsIndia] = useState(false);
 
   const router = useRouter();
 
@@ -16,11 +15,40 @@ export default function Home() {
     e.preventDefault();
     setLoading(true);
     setError("");
-  
+
     try {
-      console.log("Searching for:", companyName);
+      if (isIndia) {
+        const nameToTicker: Record<string, string> = {
+          "infosys": "INFY",
+          "tata consultancy services": "TCS",
+          "reliance industries": "RELIANCE",
+          "hdfc bank": "HDFCBANK",
+          "ltimindtree": "LTIM"
+        };
+
+        const normalized = companyName.toLowerCase().trim();
+        const ticker = nameToTicker[normalized];
+
+        if (!ticker) {
+          throw new Error("Company not recognized. Try Infosys, TCS, Reliance Industries, HDFC Bank, or LTIMindtree.");
+        }
+
+        const knownPDFs: Record<string, string> = {
+          INFY: "https://www.infosys.com/investors/reports-filings/annual-report/annual/Documents/infosys-ar-23.pdf",
+          LTIM: "https://www.ltimindtree.com/annual-report-html/pdf/Integrated-Annual-Report-FY-2023-24.pdf"
+        };
+
+        const docLink = knownPDFs[ticker];
+
+        router.push(
+          `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india`
+        );
+        return;
+      }
+
+      // US (SEC) logic
       const query = companyName.toLowerCase().replace(/ /g, "+");
-  
+
       const searchRes = await fetch(`/api/company-search`);
       const raw = await searchRes.json();
       const companies = raw.data.map((row: any[]) => ({
@@ -29,44 +57,35 @@ export default function Home() {
         ticker: row[2],
         exchange: row[3],
       }));
-      console.log("Fetched companies:", companies);
-  
+
       const companyEntry = companies.find(
         (c: any) => c.title.toLowerCase().includes(companyName.toLowerCase())
       );
-      console.log("Matched company entry:", companyEntry);
-  
+
       if (!companyEntry) throw new Error("Company not found");
 
       const cik = companyEntry.cik.toString().padStart(10, "0");
-      console.log("CIK:", cik);
-  
+
       const filingsRes = await fetch(`https://data.sec.gov/submissions/CIK${cik}.json`, {
         headers: { "User-Agent": "HackathonApp/1.0 sriramsendhil@gmail.com" }
       });
       const filingsData = await filingsRes.json();
-      console.log("Fetched filings data:", filingsData);
-  
+
       const filings = filingsData.filings.recent;
       const index = filings.form.findIndex(
         (_form: string, i: number) =>
           filings.form[i] === "10-K" && filings.filingDate[i].startsWith("2024")
-      );      console.log("10-K index:", index);
-  
+      );
+
       if (index === -1) throw new Error("No 2024 10-K found");
-  
+
       const accessionNumber = filings.accessionNumber[index].replace(/-/g, "");
       const primaryDocument = filings.primaryDocument[index];
-      console.log("Accession Number:", accessionNumber);
-      
-      const docLink = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accessionNumber}/${primaryDocument}`;  
-      console.log("Document Link:", docLink);
-  
+
+      const docLink = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accessionNumber}/${primaryDocument}`;
+
       router.push(
-        `/home?url=${encodeURIComponent(docLink)}
-        &company=${encodeURIComponent(companyEntry.title)}
-        &ticker=${encodeURIComponent(companyEntry.ticker)}
-        &cik=${companyEntry.cik}`
+        `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}`
       );
     } catch (err: any) {
       console.error("Error fetching report:", err);
@@ -75,14 +94,23 @@ export default function Home() {
       setLoading(false);
     }
   };
-  
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <form onSubmit={searchAnnualReport} className="flex flex-col items-center space-y-4 w-full max-w-md">
+        <label className="label cursor-pointer">
+          🇺🇸
+          <input
+            type="checkbox"
+            className="toggle mx-2"
+            checked={isIndia}
+            onChange={(e) => setIsIndia(e.target.checked)}
+          />
+          🇮🇳
+        </label>
         <input
           type="text"
-          placeholder="Enter MAANG Company Name"
+          placeholder="Enter Company Name"
           className="input input-bordered w-full"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
@@ -92,8 +120,7 @@ export default function Home() {
         </button>
       </form>
 
-      {error && <div className="text-error mt-4">{error}</div>} 
-
+      {error && <div className="text-error mt-4">{error}</div>}
     </div>
   );
 }
