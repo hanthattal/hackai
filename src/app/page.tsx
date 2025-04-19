@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+
 
 export default function Home() {
+  
   const [companyName, setCompanyName] = useState("");
-  const [reportLink, setReportLink] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const router = useRouter();
 
   const searchAnnualReport = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setReportLink(null);
   
     try {
       console.log("Searching for:", companyName);
@@ -59,7 +62,12 @@ export default function Home() {
       const docLink = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accessionNumber}/${primaryDocument}`;  
       console.log("Document Link:", docLink);
   
-      setReportLink(docLink);
+      router.push(
+        `/home?url=${encodeURIComponent(docLink)}
+        &company=${encodeURIComponent(companyEntry.title)}
+        &ticker=${encodeURIComponent(companyEntry.ticker)}
+        &cik=${companyEntry.cik}`
+      );
     } catch (err: any) {
       console.error("Error fetching report:", err);
       setError(err.message || "Something went wrong");
@@ -84,15 +92,7 @@ export default function Home() {
         </button>
       </form>
 
-      {error && <div className="text-error mt-4">{error}</div>}
-
-      {reportLink && (
-        <div className="mt-6 text-center">
-          <a className="link link-primary" href={reportLink} target="_blank">
-            View 2024 Annual Report
-          </a>
-        </div>
-      )}
+      {error && <div className="text-error mt-4">{error}</div>} 
 
     </div>
   );
