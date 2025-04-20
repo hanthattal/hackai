@@ -3,11 +3,13 @@
 import { useEffect, useRef } from "react";
 import { createChart, LineData, Time } from "lightweight-charts";
 
-export default function StockChart() {
+export default function StockChart({ ticker }: { ticker: string }) {
   const chartRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!chartRef.current) return;
+
+    console.log("📊 Initializing chart for ticker:", ticker);
 
     const chart = createChart(chartRef.current, {
       width: chartRef.current.clientWidth,
@@ -22,40 +24,74 @@ export default function StockChart() {
       },
       timeScale: {
         timeVisible: true,
+        secondsVisible: false,
       },
     });
 
     const lineSeries = chart.addLineSeries();
 
-    // Generate initial mock data (for the last 60 minutes)
-    const now = Math.floor(Date.now() / 1000);
-    const data: LineData[] = Array.from({ length: 60 }, (_, i) => ({
-        time: (now - (60 - i) * 60) as Time,
-        value: 180 + Math.sin(i / 5) * 2 + Math.random() * 1.5,
-    }));
+    const interpolateHistorical = (raw: { time: number; value: number }[]) => {
+      const interpolated: LineData[] = [];
+      const MINUTES_PER_DAY = 390;
+      const SECONDS_PER_MIN = 60;
 
-    lineSeries.setData(data);
-
-    // Fetch the latest trade price from Alpaca every 5 seconds
-    const fetchLiveTrade = async () => {
-      try {
-        const res = await fetch("/api/stock-price?ticker=AAPL"); // replace with dynamic ticker if needed
-        const json = await res.json();
-
-        const tradePrice = json?.trade?.p || json?.quote?.ap || json?.quote?.bp;
-
-        const time = new Date().toISOString().split("T")[0] as Time;
-
-        if (tradePrice) {
-          lineSeries.update({ time, value: tradePrice });
+      for (let i = 0; i < raw.length; i++) {
+        const dayStart = raw[i].time - (9.5 * 60 * 60); // assume 4PM close, backtrack to 9:30AM
+        for (let m = 0; m < MINUTES_PER_DAY; m++) {
+          interpolated.push({
+            time: (dayStart + m * SECONDS_PER_MIN) as Time,
+            value: raw[i].value,
+          });
         }
+      }
+
+      return interpolated;
+    };
+
+    const fetchHistorical = async () => {
+      try {
+        console.log("📦 Fetching historical data for:", ticker);
+        const res = await fetch(`/api/historical?ticker=${ticker}`);
+        const json = await res.json();
+        console.log("📥 Raw historical response:", json);
+
+        if (!json || !Array.isArray(json)) {
+          console.warn("⚠️ Unexpected historical format:", json);
+          return;
+        }
+
+        const interpolatedData = interpolateHistorical(json);
+        console.log("📊 Interpolated data points:", interpolatedData.length);
+        lineSeries.setData(interpolatedData);
+        chart.timeScale().fitContent();
       } catch (err) {
-        console.error("Error fetching live price:", err);
+        console.error("❌ Historical fetch error:", err);
       }
     };
 
-    fetchLiveTrade();
-    const interval = setInterval(fetchLiveTrade, 5000);
+    const fetchLive = async () => {
+      try {
+        console.log("🔄 Fetching live price for:", ticker);
+        const res = await fetch(`/api/stock-price?ticker=${ticker}`);
+        const json = await res.json();
+        console.log("✅ Live price response:", json);
+
+        const tradePrice = json?.trade?.p || json?.quote?.ap || json?.quote?.bp;
+        const updatedTime = Math.floor(Date.now() / 1000) as Time;
+
+        if (tradePrice) {
+          const point = { time: updatedTime, value: tradePrice };
+          console.log("📈 Updating with live point:", point);
+          lineSeries.update(point);
+        }
+      } catch (err) {
+        console.error("❌ Live price fetch error:", err);
+      }
+    };
+
+    fetchHistorical();
+    fetchLive();
+    const liveInterval = setInterval(fetchLive, 5000);
 
     const resize = () => {
       chart.applyOptions({
@@ -67,11 +103,11 @@ export default function StockChart() {
     window.addEventListener("resize", resize);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(liveInterval);
       window.removeEventListener("resize", resize);
       chart.remove();
     };
-  }, []);
+  }, [ticker]);
 
   return <div ref={chartRef} className="w-full h-full" />;
 }

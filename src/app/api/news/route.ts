@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
+  console.log("📡 /api/news hit");
+
   const company = req.nextUrl.searchParams.get("company");
   const apiKey = process.env.NEWSDATA_API_KEY;
 
