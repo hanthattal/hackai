@@ -1,6 +1,10 @@
+PyMuPDF
 fastapi
-python-dotenv
-uvicorn
-torch
-pydantic
+flask
+flask-cors
 numpy
+openai
+pydantic
+python-dotenv
+torch
+uvicorn

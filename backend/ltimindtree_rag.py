@@ -15,13 +15,15 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 PDF_PATH = "backend/data/LTIMindtree Annual Report.pdf"
 
 # ✅ Extract all text chunks from PDF
-def extract_text_from_pdf(pdf_path):
-    text_chunks = []
-    with fitz.open(pdf_path) as doc:
-        for page in doc:
-            text = page.get_text("text")
-            if text:
-                text_chunks.append(text)
+def extract_text_from_pdf(relative_path: str):
+    base_dir = os.path.dirname(__file__)
+    abs_path = os.path.join(base_dir, "..", relative_path)  # go one level up
+    abs_path = os.path.abspath(abs_path)  # clean it up
+
+    print(f"📄 Resolved PDF path: {abs_path}")  # Debug print
+
+    with fitz.open(abs_path) as doc:
+        text_chunks = [page.get_text() for page in doc]
     return text_chunks
 
 # ✅ Use the updated OpenAI Embedding API

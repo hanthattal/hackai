@@ -3,7 +3,7 @@ from flask_cors import CORS
 from ltimindtree_rag import answer_question
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
 @app.route("/ask", methods=["POST"])
 def ask():
