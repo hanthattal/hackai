@@ -36,9 +36,9 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
         const res = await fetch(`/api/news?company=${encodeURIComponent(company)}`);
         const data = await res.json();
         setArticles(Array.isArray(data.results) ? data.results : []);
-        console.log('data',data);
+        //console.log('data',data);
       } catch (err) {
-        console.error("Failed to fetch news", err);
+        //console.error("Failed to fetch news", err);
       } finally {
         setLoading(false);
       }
@@ -52,7 +52,7 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
 
       for (let i = 0; i < articles.length; i++) {
         const fullText = `${articles[i].title} ${articles[i].description}`;
-        console.log(`▶️ Running analysis for article #${i}:`);
+        //console.log(`▶️ Running analysis for article #${i}:`);
 
         let vader: VaderSentiment | null = null;
         let groq: GroqAnalysis | null = null;
@@ -65,12 +65,12 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
             body: JSON.stringify({ text: fullText }),
           });
           vader = await vaderRes.json();
-          console.log(`🧪 VADER #${i}:`, vader);
+          //console.log(`🧪 VADER #${i}:`, vader);
           if (vader !== null && typeof vader.compound === "number") {
             setVaderScores((prev) => ({ ...prev, [i]: vader as VaderSentiment }));
           }
         } catch (err) {
-          console.error(`❌ VADER failed for article #${i}:`, err);
+          //console.error(`❌ VADER failed for article #${i}:`, err);
         }
 
         // Fetch Groq sentiment
@@ -83,17 +83,17 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
           const rawGroq = await groqRes.json();
           if (rawGroq.sentiment_analysis) {
             groq = rawGroq.sentiment_analysis;
-            console.log(`✅ Parsed Groq response #${i}:`, groq);
+            //console.log(`✅ Parsed Groq response #${i}:`, groq);
             if (groq !== null) {
               setGroqScores((prev) => ({ ...prev, [i]: groq as GroqAnalysis }));
             }
           } else {
-            console.warn(`⚠️ Groq response missing sentiment_analysis for article #${i}`, rawGroq);
+            //console.warn(`⚠️ Groq response missing sentiment_analysis for article #${i}`, rawGroq);
             groq = { sentiment: "neutral", confidence_score: 0 };
             setGroqScores((prev) => ({ ...prev, [i]: groq! }));
           }
         } catch (err) {
-          console.error(`❌ Groq failed for article #${i}:`, err);
+          //console.error(`❌ Groq failed for article #${i}:`, err);
         }
 
         if (vader && groq && vader.compound !== 0) {
