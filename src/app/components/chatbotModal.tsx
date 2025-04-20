@@ -35,38 +35,42 @@ const ChatbotModal: React.FC<Props> = ({ isOpen, onClose }) => {
   
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-      <div className="bg-base-100 w-11/12 h-5/6 rounded-xl shadow-xl p-6 relative">
+    <div className="fixed inset-0 flex items-center justify-center z-50 bg-gradient-to-br from-[#e6f4ea] to-[#cde4d3] bg-opacity-95">
+      <div className="bg-white text-black w-[90%] max-w-3xl h-[80%] rounded-xl shadow-lg p-6 relative border border-[#b6d7b9]">
         <button
           className="btn btn-sm btn-circle btn-ghost absolute top-4 right-4"
           onClick={onClose}
         >
           ✕
         </button>
-        <h2 className="text-2xl font-bold mb-4">Chatbot Assistant</h2>
+        <h2 className="text-3xl font-semibold mb-6 text-center text-green-900 drop-shadow-md">Your Investment Assistant</h2>
         <div className="mb-4">
           <input
             type="text"
-            className="input input-bordered w-full"
+            className="w-full px-4 py-2 border border-[#b6d7b9] rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-400"
             placeholder="Ask a question..."
             value={question}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
               setQuestion(e.target.value)
             }
           />
-          <button className="btn btn-primary mt-2" onClick={handleAsk}>
+          <button
+            className="mt-3 w-full py-2 rounded-md bg-gradient-to-r from-[#76b852] to-[#8DC26F] text-white font-medium hover:from-[#669944] hover:to-[#79b26c] transition-all"
+            onClick={handleAsk}
+          >
             Ask
           </button>
 
         </div>
         {answer && (
-            <div className="mt-4 p-4 bg-gray-100 rounded-lg text-black">
-            <strong>Answer:</strong> {answer}
-          </div>
+            <div className="mt-6 p-4 bg-[#e6f4ea] rounded-lg shadow-inner border border-[#b6d7b9]">
+              <strong className="block text-gray-700 mb-2">Answer:</strong>
+              <p className="text-green-800">{answer}</p>
+            </div>
         )}
       </div>
     </div>
   );
 };
-
+  
 export default ChatbotModal;

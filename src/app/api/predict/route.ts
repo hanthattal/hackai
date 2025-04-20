@@ -31,17 +31,22 @@ export async function POST(req: Request) {
   const ticker = body.ticker;
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(endDate.getDate() - windowSize);
+  startDate.setDate(endDate.getDate() - Math.max(windowSize, 1));
 
   let pricing_data = [];
 
   try {
-    const result = await yahooFinance.historical(ticker, {
-      period1: startDate,
-      period2: endDate,
+    const period1 = Math.floor(startDate.getTime() / 1000);
+    const period2 = Math.floor(endDate.getTime() / 1000);
+
+    const result = await yahooFinance.chart(ticker, {
+      period1,
+      period2,
+      interval: "1d"
     });
 
-    pricing_data = result.slice(-windowSize).map(day => [
+    const pricingPoints = result.quotes || [];
+    pricing_data = pricingPoints.slice(-windowSize).map(day => [
       day.close ?? 0,
       day.open ?? 0,
       day.high ?? 0,
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
   }
 
   try {
+    console.log("📦 Sending payload to backend:", JSON.stringify(body, null, 2));
     const response = await fetch("http://localhost:8000/predict", {
       method: "POST",
       headers: {

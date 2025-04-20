@@ -165,29 +165,11 @@ export default function Home() {
         if (!investmentStyle || !companyName) {
           console.warn("Prediction skipped: missing ticker or investment style.");
         } else {
-          const sentimentScores = sessionStorage.getItem("sentimentScores");
-          const reportEmbedding = sessionStorage.getItem("reportEmbedding");
-
-          fetch("/api/predict", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              ticker,
-              strategy: investmentStyle,
-              sentiment_scores: sentimentScores ? JSON.parse(sentimentScores) : undefined,
-              report_embedding: reportEmbedding ? JSON.parse(reportEmbedding) : []
-            })
-          }).then(res => res.json())
-            .then(data => console.log("📈 Prediction triggered:", data))
-            .catch(err => console.error("Prediction error:", err));
+          router.push(
+            `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india&style=${investmentStyle}`
+          );
+          return;
         }
-
-        router.push(
-          `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india&style=${investmentStyle}`
-        );
-        return;
       }
 
       // US (SEC) logic
@@ -234,28 +216,10 @@ export default function Home() {
       if (!investmentStyle || !companyName) {
         console.warn("Prediction skipped: missing ticker or investment style.");
       } else {
-        const sentimentScores = sessionStorage.getItem("sentimentScores");
-        const reportEmbedding = sessionStorage.getItem("reportEmbedding");
-
-        fetch("/api/predict", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            ticker,
-            strategy: investmentStyle,
-            sentiment_scores: sentimentScores ? JSON.parse(sentimentScores) : undefined,
-            report_embedding: reportEmbedding ? JSON.parse(reportEmbedding) : []
-          })
-        }).then(res => res.json())
-          .then(data => console.log("📈 Prediction triggered:", data))
-          .catch(err => console.error("Prediction error:", err));
+        router.push(
+          `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}&style=${investmentStyle}`
+        );
       }
-
-      router.push(
-        `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}&style=${investmentStyle}`
-      );
     } catch (err: any) {
       console.error("Error fetching report:", err);
       setError(err.message || "Something went wrong");
