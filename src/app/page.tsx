@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Home() {
@@ -9,6 +9,12 @@ export default function Home() {
   const [error, setError] = useState("");
   const [isIndia, setIsIndia] = useState(false);
   const [investmentStyle, setInvestmentStyle] = useState("long");
+  useEffect(() => {
+    const storedStyle = sessionStorage.getItem("investmentStyle");
+    if (storedStyle) {
+      setInvestmentStyle(storedStyle);
+    }
+  }, []);
 
   const router = useRouter();
 
@@ -29,6 +35,7 @@ export default function Home() {
 
         const normalized = companyName.toLowerCase().trim();
         const ticker = nameToTicker[normalized];
+        sessionStorage.setItem("ticker", ticker);
 
         if (!ticker) {
           throw new Error("Company not recognized. Try Infosys, TCS, Reliance Industries, HDFC Bank, or LTIMindtree.");
@@ -40,6 +47,28 @@ export default function Home() {
         };
 
         const docLink = knownPDFs[ticker];
+
+        if (!investmentStyle || !companyName) {
+          console.warn("Prediction skipped: missing ticker or investment style.");
+        } else {
+          const sentimentScores = sessionStorage.getItem("sentimentScores");
+          const reportEmbedding = sessionStorage.getItem("reportEmbedding");
+
+          fetch("/api/predict", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              ticker,
+              strategy: investmentStyle,
+              sentiment_scores: sentimentScores ? JSON.parse(sentimentScores) : undefined,
+              report_embedding: reportEmbedding ? JSON.parse(reportEmbedding) : []
+            })
+          }).then(res => res.json())
+            .then(data => console.log("📈 Prediction triggered:", data))
+            .catch(err => console.error("Prediction error:", err));
+        }
 
         router.push(
           `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india&style=${investmentStyle}`
@@ -85,6 +114,31 @@ export default function Home() {
 
       const docLink = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accessionNumber}/${primaryDocument}`;
 
+      const ticker = companyEntry.ticker;
+      sessionStorage.setItem("ticker", ticker);
+
+      if (!investmentStyle || !companyName) {
+        console.warn("Prediction skipped: missing ticker or investment style.");
+      } else {
+        const sentimentScores = sessionStorage.getItem("sentimentScores");
+        const reportEmbedding = sessionStorage.getItem("reportEmbedding");
+
+        fetch("/api/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            ticker,
+            strategy: investmentStyle,
+            sentiment_scores: sentimentScores ? JSON.parse(sentimentScores) : undefined,
+            report_embedding: reportEmbedding ? JSON.parse(reportEmbedding) : []
+          })
+        }).then(res => res.json())
+          .then(data => console.log("📈 Prediction triggered:", data))
+          .catch(err => console.error("Prediction error:", err));
+      }
+
       router.push(
         `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}&style=${investmentStyle}`
       );
@@ -112,7 +166,10 @@ export default function Home() {
         value="long"
         className="btn w-full"
         checked={investmentStyle === "long"}
-        onChange={() => setInvestmentStyle("long")}
+        onChange={() => {
+          setInvestmentStyle("long");
+          sessionStorage.setItem("investmentStyle", "long");
+        }}
       />
       <span className="block text-center mt-1 text-sm">📈 Long</span>
     </label>
@@ -124,7 +181,10 @@ export default function Home() {
         value="short"
         className="btn w-full"
         checked={investmentStyle === "short"}
-        onChange={() => setInvestmentStyle("short")}
+        onChange={() => {
+          setInvestmentStyle("short");
+          sessionStorage.setItem("investmentStyle", "short");
+        }}
       />
       <span className="block text-center mt-1 text-sm">📉 Short</span>
     </label>
@@ -136,7 +196,10 @@ export default function Home() {
         value="trading"
         className="btn w-full"
         checked={investmentStyle === "trading"}
-        onChange={() => setInvestmentStyle("trading")}
+        onChange={() => {
+          setInvestmentStyle("trading");
+          sessionStorage.setItem("investmentStyle", "trading");
+        }}
       />
       <span className="block text-center mt-1 text-sm">⚡ Trading</span>
     </label>
