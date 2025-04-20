@@ -21,7 +21,7 @@ export default function TradingPage() {
     </div>
 
     {/* Chart area */}
-    <div className="relative flex-1 overflow-y-auto h-full">
+    <div className="relative flex-1 overflow-y-auto h-full w-full">
       <StockChart ticker={ticker || "defaultTicker"}/>
       <TradeOverlayCard ticker={ticker} />
     </div>

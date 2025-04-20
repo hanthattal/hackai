@@ -13,7 +13,7 @@ export default function StockChart({ ticker }: { ticker: string }) {
 
     const chart = createChart(chartRef.current, {
       width: chartRef.current.clientWidth,
-      height: chartRef.current.clientHeight,
+      height: 300, // Fixed height for better visibility
       layout: {
         background: { color: "#f9fafb" },
         textColor: "#333",
@@ -28,7 +28,12 @@ export default function StockChart({ ticker }: { ticker: string }) {
       },
     });
 
-    const lineSeries = chart.addLineSeries();
+    const lineSeries = chart.addLineSeries({
+      color: '#16a34a', // Green color to match theme
+      lineWidth: 2,
+      crosshairMarkerVisible: true,
+      crosshairMarkerRadius: 4,
+    });
 
     const interpolateHistorical = (raw: { time: number; value: number }[]) => {
       const interpolated: LineData[] = [];
@@ -109,5 +114,19 @@ export default function StockChart({ ticker }: { ticker: string }) {
     };
   }, [ticker]);
 
-  return <div ref={chartRef} className="w-full h-full" />;
+  return (
+    <div className="bg-white rounded-2xl shadow p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">📈 Stock Chart - {ticker}</h2>
+        <div className="text-xs text-gray-500">Live updates every 5 seconds</div>
+      </div>
+      
+      <div ref={chartRef} className="w-full h-[300px] rounded-lg border border-gray-200" />
+      
+      <div className="mt-3 flex justify-end">
+        <div className="badge badge-outline badge-sm">Historical</div>
+        <div className="badge badge-outline badge-sm badge-success ml-2">Live Data</div>
+      </div>
+    </div>
+  );
 }
