@@ -56,6 +56,38 @@ const HomePage = () => {
   
         fetchSummary();
     }, [ticker]);
+
+    useEffect(() => {
+        const fetchReportToStorage = async () => {
+          if (!reportLink) return;
+      
+          try {
+            const res = await fetch(`/api/report?url=${encodeURIComponent(reportLink)}`);
+            const contentType = res.headers.get("Content-Type");
+      
+            if (contentType?.includes("pdf")) {
+              const blob = await res.blob();
+              const reader = new FileReader();
+      
+              reader.onloadend = () => {
+                const base64data = reader.result;
+                sessionStorage.setItem("reportPDF", base64data as string);
+              };
+      
+              reader.readAsDataURL(blob); // convert to base64
+            } else {
+              const htmlText = await res.text();
+              sessionStorage.setItem("reportHTML", htmlText);
+            }
+      
+            console.log("📦 Report saved to sessionStorage");
+          } catch (err) {
+            console.error("❌ Failed to fetch or store report:", err);
+          }
+        };
+      
+        fetchReportToStorage();
+      }, [reportLink]);
   
     return (
         <div className="flex h-screen relative">
