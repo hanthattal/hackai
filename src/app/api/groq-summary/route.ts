@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   const { ticker, data } = await req.json();
   const transactions = data?.data || [];
 
-  console.log(`[GPT-3.5] Received ${transactions.length} transactions for ${ticker}`);
+  //console.log(`[GPT-3.5] Received ${transactions.length} transactions for ${ticker}`);
 
   if (!transactions.length) {
     return NextResponse.json({ summary: "No insider transactions found." });
@@ -84,7 +84,7 @@ ${JSON.stringify(enriched, null, 2)}
     });
 
     const json = await res.json();
-    console.log("[GPT-3.5] ✅ Final JSON output:", json);
+    //console.log("[GPT-3.5] ✅ Final JSON output:", json);
     return NextResponse.json(json);
   } catch (err) {
     console.error("[GPT-3.5] ❌ Error generating JSON summary:", err);

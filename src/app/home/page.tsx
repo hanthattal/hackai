@@ -5,25 +5,11 @@ import { useSearchParams } from 'next/navigation';
 import ChatbotModal from '@/app/components/chatbotModal';
 import { MessageSquare } from "lucide-react";
 import { InsiderTradingSection, InsiderSummary } from '@/app/components/insidertrading';
+import GlobalNewsWithSentiment from '@/app/components/globalNews';
 
 const HomePage = () => {
 
-    type InsiderSummary = {
-        summary: string;
-        key_actions: {
-          insider: string;
-          action: "buy" | "sell";
-          shares: number;
-          value_usd: number;
-          transaction_date: string;
-        }[];
-        totals: {
-          total_shares_sold: number;
-          total_value_sold: number;
-          date_range: { from: string; to: string };
-        };
-        conclusion: string;
-      };
+
 
     const searchParams = useSearchParams();
     const reportLink = searchParams.get('url');
@@ -37,16 +23,16 @@ const HomePage = () => {
     const [openModal, setOpenModal] = useState(false)
     const [insiderSummary, setInsiderSummary] = useState<InsiderSummary | null>(null);
 
-    console.log("Report Link:", reportLink);
+    //console.log("Report Link:", reportLink);
 
     useEffect(() => {
         const fetchSummary = async () => {
         if (!ticker) return;
     
-        console.log("📦 Fetching insider data for:", ticker);
+        //console.log("📦 Fetching insider data for:", ticker);
         const res = await fetch(`/api/insider?ticker=${ticker}`);
         const data = await res.json();
-        console.log("✅ Insider data:", data);
+        //console.log("✅ Insider data:", data);
     
         const summaryRes = await fetch("/api/groq-summary", {
             method: "POST",
@@ -55,7 +41,7 @@ const HomePage = () => {
         });
     
         const summaryJson = await summaryRes.json();
-        console.log("🧠 GPT Summary:", summaryJson);
+        //console.log("🧠 GPT Summary:", summaryJson);
     
         try {
             const parsed = typeof summaryJson.choices?.[0]?.message?.content === "string"
@@ -93,11 +79,18 @@ const HomePage = () => {
         {/* Right half */}
         <div className="w-1/2 p-4">
             <p className="text-xl font-semibold mb-2">Insider Trading</p>
-            {insiderSummary ? (
+            {/* {insiderSummary ? (
                 <InsiderTradingSection insiderSummary={insiderSummary} />
                 ) : (
                 <p className="text-gray-500">Loading insider trading summary...</p>
+            )} */}
+            <p className="text-lg font-semibold mt-6">News</p>
+            {company ? (
+                <GlobalNewsWithSentiment company={company} />
+            ) : (
+                <p className="text-gray-500">No company selected.</p>
             )}
+
         </div>
 
         {/* Floating Button */}
