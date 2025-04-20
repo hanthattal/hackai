@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 type Props = {
   isOpen: boolean;
@@ -9,6 +9,35 @@ type Props = {
 
 const ChatbotModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
+
+  useEffect(() => {
+    const fetchEmbedding = async () => {
+      try {
+        const res = await fetch("https://api.openai.com/v1/embeddings", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            input: "2023 was a strong year with increased revenue and net margin growth...",
+            model: "text-embedding-ada-002",
+          }),
+        });
+
+        const data = await res.json();
+        const embedding = data?.data?.[0]?.embedding;
+        if (embedding) {
+          sessionStorage.setItem("reportEmbedding", JSON.stringify(embedding));
+          console.log("✅ Stored OpenAI embedding in sessionStorage.");
+        }
+      } catch (err) {
+        console.error("❌ Failed to fetch OpenAI embedding", err);
+      }
+    };
+
+    fetchEmbedding();
+  }, []);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

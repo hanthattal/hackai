@@ -22,7 +22,7 @@ export const InsiderTradingSection = ({ insiderSummary }: { insiderSummary: Insi
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">\ud83d\udcc4 Summary</h2>
-        <p className="text-sm text-gray-700">{insiderSummary.summary}</p>
+        <p className="text-sm text-gray-700">{insiderSummary?.summary || "No summary available."}</p>
       </div>
 
       <div>
@@ -39,15 +39,21 @@ export const InsiderTradingSection = ({ insiderSummary }: { insiderSummary: Insi
               </tr>
             </thead>
             <tbody>
-              {insiderSummary.key_actions.map((action, idx) => (
-                <tr key={idx}>
-                  <td>{action.insider}</td>
-                  <td>{action.action}</td>
-                  <td>{action.shares.toLocaleString()}</td>
-                  <td>${action.value_usd.toLocaleString()}</td>
-                  <td>{action.transaction_date}</td>
+              {Array.isArray(insiderSummary.key_actions) && insiderSummary.key_actions.length > 0 ? (
+                insiderSummary.key_actions.map((action, idx) => (
+                  <tr key={idx}>
+                    <td>{action.insider}</td>
+                    <td>{action.action}</td>
+                    <td>{action.shares.toLocaleString()}</td>
+                    <td>${action.value_usd.toLocaleString()}</td>
+                    <td>{action.transaction_date}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="text-center text-gray-500">No insider actions available.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -55,14 +61,14 @@ export const InsiderTradingSection = ({ insiderSummary }: { insiderSummary: Insi
 
       <div>
         <h2 className="text-xl font-semibold">\ud83d\udcca Totals</h2>
-        <p>Total Shares Sold: {insiderSummary.totals.total_shares_sold.toLocaleString()}</p>
-        <p>Total Value Sold: ${insiderSummary.totals.total_value_sold.toLocaleString()}</p>
-        <p>Date Range: {insiderSummary.totals.date_range.from} to {insiderSummary.totals.date_range.to}</p>
+        <p>Total Shares Sold: {insiderSummary?.totals?.total_shares_sold?.toLocaleString?.() || "N/A"}</p>
+        <p>Total Value Sold: ${insiderSummary?.totals?.total_value_sold?.toLocaleString?.() || "N/A"}</p>
+        <p>Date Range: {insiderSummary?.totals?.date_range?.from || "N/A"} to {insiderSummary?.totals?.date_range?.to || "N/A"}</p>
       </div>
 
       <div>
         <h2 className="text-xl font-semibold">\ud83d\udcc8 Conclusion</h2>
-        <p className="text-sm text-gray-700">{insiderSummary.conclusion}</p>
+        <p className="text-sm text-gray-700">{insiderSummary?.conclusion || "No conclusion available."}</p>
       </div>
     </div>
   );
