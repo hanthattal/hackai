@@ -1,13 +1,29 @@
 "use client";
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 const Navbar = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+
+  const ticker = searchParams.get("ticker");
+  const company = searchParams.get("company");
+  const style = searchParams.get("style");
 
   const handleNavigation = (path: string) => {
-    router.push(path);
+    if (path === "/home/trading" && ticker && company && style) {
+      console.log("🛰️ Navigating to trading with params:", {
+        ticker,
+        company,
+        style,
+      });
+  
+      router.push(`${path}?ticker=${ticker}&company=${company}&style=${style}`);
+    } else {
+      router.push(path);
+    }
   };
 
   return (
@@ -26,7 +42,11 @@ const Navbar = () => {
             <li onClick={() => handleNavigation('/home')} className="cursor-pointer">
               <a>Analysis</a>
             </li>
-            <li onClick={() => handleNavigation('/home/trading')} className="cursor-pointer">
+            <li
+              onClick={() => handleNavigation('/home/trading')}
+              className={`cursor-pointer ${!ticker ? "tooltip tooltip-bottom" : ""}`}
+              data-tip={!ticker ? "Load a company first" : ""}
+            >
               <a>Trading</a>
             </li>
           </ul>

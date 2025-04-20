@@ -17,6 +17,7 @@ const HomePage = () => {
     const ticker = searchParams.get('ticker');
     const cik = searchParams.get('cik');
     const source = searchParams.get('source'); // "india" if from Screener.in
+    const style = searchParams.get("style") || "long";
 
     const isIndia = source === "india";
 
@@ -79,11 +80,11 @@ const HomePage = () => {
         {/* Right half */}
         <div className="w-1/2 p-4">
             <p className="text-xl font-semibold mb-2">Insider Trading</p>
-            {/* {insiderSummary ? (
+            {insiderSummary ? (
                 <InsiderTradingSection insiderSummary={insiderSummary} />
                 ) : (
                 <p className="text-gray-500">Loading insider trading summary...</p>
-            )} */}
+            )}
             <p className="text-lg font-semibold mt-6">News</p>
             {company ? (
                 <GlobalNewsWithSentiment company={company} />

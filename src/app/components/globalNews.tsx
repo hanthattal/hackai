@@ -142,7 +142,9 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
                     {groqScores[index] ? (
                       <>
                         {groqScores[index].sentiment} (confidence:{" "}
-                        {groqScores[index].confidence_score.toFixed(2)})
+                          {groqScores[index]?.confidence_score !== undefined
+                            ? groqScores[index].confidence_score.toFixed(2)
+                            : "N/A"}
                       </>
                     ) : (
                       "Analyzing..."
