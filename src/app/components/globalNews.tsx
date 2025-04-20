@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react"; // Using lucide icons
 
 type Article = {
   title: string;
@@ -27,6 +28,7 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
   const [loading, setLoading] = useState(true);
   const [vaderScores, setVaderScores] = useState<Record<number, VaderSentiment>>({});
   const [groqScores, setGroqScores] = useState<Record<number, GroqAnalysis>>({});
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -34,6 +36,7 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
         const res = await fetch(`/api/news?company=${encodeURIComponent(company)}`);
         const data = await res.json();
         setArticles(Array.isArray(data.results) ? data.results : []);
+        console.log('data',data);
       } catch (err) {
         console.error("Failed to fetch news", err);
       } finally {
@@ -49,7 +52,7 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
 
       for (let i = 0; i < articles.length; i++) {
         const fullText = `${articles[i].title} ${articles[i].description}`;
-        console.log(`▶️ Running analysis for article #${i}:`, fullText);
+        console.log(`▶️ Running analysis for article #${i}:`);
 
         let vader: VaderSentiment | null = null;
         let groq: GroqAnalysis | null = null;
@@ -82,11 +85,7 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
             groq = rawGroq.sentiment_analysis;
             console.log(`✅ Parsed Groq response #${i}:`, groq);
             if (groq !== null) {
-              if (groq) {
-                if (groq !== null) {
-                  setGroqScores((prev) => ({ ...prev, [i]: groq as GroqAnalysis }));
-                }
-              }
+              setGroqScores((prev) => ({ ...prev, [i]: groq as GroqAnalysis }));
             }
           } else {
             console.warn(`⚠️ Groq response missing sentiment_analysis for article #${i}`, rawGroq);
@@ -102,8 +101,6 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
           const sentiment = groq.sentiment === "positive" ? "positive" :
                             groq.sentiment === "negative" ? "negative" : "neutral";
 
-          console.log("📦 STORING:", { sentiment, confidence_score: finalSentimentScore });
-
           finalScores.push({
             sentiment,
             confidence_score: finalSentimentScore
@@ -112,7 +109,6 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
       }
       
       if (finalScores.length > 0) {
-        console.log("📤 Sentiment scores stored:", finalScores);
         sessionStorage.setItem("sentimentScores", JSON.stringify(finalScores));
       }
     };
@@ -120,70 +116,136 @@ export default function GlobalNewsWithSentiment({ company }: { company: string }
     if (articles.length > 0) runSentimentAnalysis();
   }, [articles]);
 
+  // Get sorted articles based on sentiment confidence
+  const sortedArticles = articles.length > 0 
+    ? articles
+        .map((article, index) => {
+          const vader = vaderScores[index];
+          const groq = groqScores[index];
+          const vaderConfidence = vader ? Math.abs(vader.compound) : 0;
+          const groqConfidence = groq ? groq.confidence_score : 0;
+          const avgConfidence = (vaderConfidence + groqConfidence) / 2;
+          return { index, article, avgConfidence };
+        })
+        .sort((a, b) => b.avgConfidence - a.avgConfidence)
+        .slice(0, 5)
+    : [];
+
+  // Carousel navigation functions
+  const nextSlide = () => {
+    if (sortedArticles.length > 0) {
+      setCurrentSlide((prev) => (prev + 1) % sortedArticles.length);
+    }
+  };
+
+  const prevSlide = () => {
+    if (sortedArticles.length > 0) {
+      setCurrentSlide((prev) => (prev - 1 + sortedArticles.length) % sortedArticles.length);
+    }
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
+  };
+
   return (
-    <div className="p-4 rounded-2xl shadow bg-white">
-      <h2 className="text-xl font-semibold mb-4">🌍 Global News with Sentiment</h2>
+    <div className="p-4 rounded-2xl shadow bg-slate-100 ">
       {loading ? (
         <p>Loading news...</p>
       ) : articles.length === 0 ? (
         <p>No articles found.</p>
       ) : (
-        <ul className="space-y-4">
-          {articles
-            .map((article, index) => {
-              const vader = vaderScores[index];
-              const groq = groqScores[index];
-              const vaderConfidence = vader ? Math.abs(vader.compound) : 0;
-              const groqConfidence = groq ? groq.confidence_score : 0;
-              const avgConfidence = (vaderConfidence + groqConfidence) / 2;
-              return { index, article, avgConfidence };
-            })
-            .sort((a, b) => b.avgConfidence - a.avgConfidence)
-            .slice(0, 5)
-            .map(({ index, article }) => (
-              <li key={index} className="border-b pb-3">
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 font-medium hover:underline"
-                >
-                  {article.title}
-                </a>
-                <div className="text-sm text-gray-600">
-                  {article.source_id} · {new Date(article.pubDate).toLocaleDateString()}
-                </div>
-                <p className="text-sm mt-1">{article.description}</p>
+        <div className="relative">
+          {/* Carousel container */}
+          <div className="carousel w-full px-6">
+            {sortedArticles.map(({ index, article }, i) => (
+              <div 
+                key={index} 
+                id={`slide-${i}`}
+                className={`carousel-item  relative w-full ${i === currentSlide ? 'block' : 'hidden'}`}
+              >
+                <div className="w-full border-b pb-5">
+                  <a
+                    href={article.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 font-medium hover:underline"
+                  >
+                    {article.title}
+                  </a>
+                  <div className="text-sm text-gray-600">
+                    {article.source_id} · {new Date(article.pubDate).toLocaleDateString()}
+                  </div>
+                  <div className="text-sm mt-2 max-h-[6.5rem] overflow-y-auto pr-1">
+                    {article.description}
+                  </div>
 
-                <div className="mt-2 text-sm">
-                  <div>
-                    <strong>🧪 VADER:</strong>{" "}
-                    {vaderScores[index] ? (
-                      <>
-                        {vaderScores[index].sentiment} (score:{" "}
-                        {vaderScores[index].compound.toFixed(2)})
-                      </>
-                    ) : (
-                      "Analyzing..."
-                    )}
-                  </div>
-                  <div>
-                    <strong>🤖 Groq:</strong>{" "}
-                    {groqScores[index] ? (
-                      <>
-                        {groqScores[index].sentiment} (confidence:{" "}
-                          {groqScores[index]?.confidence_score !== undefined
-                            ? groqScores[index].confidence_score.toFixed(2)
-                            : "N/A"}
-                      </>
-                    ) : (
-                      "Analyzing..."
-                    )}
+                  <div className="mt-3 text-sm border-t pt-2">
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium">🧪 VADER:</span>
+                      <span>{vaderScores[index] ? (
+                        <>
+                          {vaderScores[index].sentiment} (
+                          <span className={`${vaderScores[index].compound > 0 ? 'text-green-600' : vaderScores[index].compound < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                            {vaderScores[index].compound.toFixed(2)}
+                          </span>)
+                        </>
+                      ) : "Analyzing..."}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">🤖 Groq:</span>
+                      <span>{groqScores[index] ? (
+                        <>
+                          {groqScores[index].sentiment} (
+                          <span className={`${groqScores[index].sentiment === 'positive' ? 'text-green-600' : groqScores[index].sentiment === 'negative' ? 'text-red-600' : 'text-gray-600'}`}>
+                            {groqScores[index]?.confidence_score !== undefined
+                              ? groqScores[index].confidence_score.toFixed(2)
+                              : "N/A"}
+                          </span>)
+                        </>
+                      ) : "Analyzing..."}</span>
+                    </div>
                   </div>
                 </div>
-              </li>
+              </div>
             ))}
-        </ul>
+          </div>
+
+          {/* Navigation buttons */}
+          <div className="flex justify-between absolute top-1/2 transform -translate-y-1/2 -left-2 -right-2">
+            <button 
+              onClick={prevSlide}
+              className="btn btn-circle btn-sm bg-gray-100 hover:bg-gray-200 border-gray-200"
+            >
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
+            </button>
+            <button 
+              onClick={nextSlide}
+              className="btn btn-circle btn-sm bg-gray-100 hover:bg-gray-200 border-gray-200"
+            >
+              <ChevronRight className="w-5 h-5 text-gray-700" />
+            </button>
+          </div>
+
+          {/* Carousel indicators */}
+          <div className="flex justify-center mt-4 gap-2">
+            {sortedArticles.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => goToSlide(i)}
+                className={`w-2 h-2 rounded-full ${i === currentSlide ? 'bg-green-600' : 'bg-gray-300'}`}
+                aria-label={`Go to slide ${i+1}`}
+              />
+            ))}
+          </div>
+
+          {/* Counter display */}
+          <div className="text-center mt-2 text-sm text-gray-500">
+            {sortedArticles.length > 0 ? (
+              <span>{currentSlide + 1} of {sortedArticles.length}</span>
+            ) : null}
+          </div>
+        </div>
       )}
     </div>
   );

@@ -8,22 +8,25 @@ export default function TradeOverlayCard({ ticker }: { ticker: string | null }) 
   const [qty, setQty] = useState<number>(1);
   const [side, setSide] = useState<"buy" | "sell">("buy");
 
+  const fetchAccount = async () => {
+    const res = await fetch("/api/alpaca/account");
+    const data = await res.json();
+    setCash(parseFloat(data.cash));
+  };
+
+  const fetchPosition = async () => {
+    if (!ticker) return;
+    const res = await fetch(`/api/alpaca/position?ticker=${ticker}`);
+    const data = await res.json();
+    setShares(parseInt(data.qty || "0"));
+  };
+
+  const refresh = async () => {
+    await Promise.all([fetchAccount(), fetchPosition()]);
+  };
+
   useEffect(() => {
-    const fetchAccount = async () => {
-      const res = await fetch("/api/alpaca/account");
-      const data = await res.json();
-      setCash(parseFloat(data.cash));
-    };
-
-    const fetchPosition = async () => {
-      if (!ticker) return;
-      const res = await fetch(`/api/alpaca/position?ticker=${ticker}`);
-      const data = await res.json();
-      setShares(parseInt(data.qty || "0"));
-    };
-
-    fetchAccount();
-    fetchPosition();
+    refresh();
   }, [ticker]);
 
   const placeTrade = async () => {
@@ -32,8 +35,14 @@ export default function TradeOverlayCard({ ticker }: { ticker: string | null }) 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ticker, qty, side }),
     });
+
     const result = await res.json();
-    alert(result.success ? `✅ ${side} executed!` : `❌ Trade failed`);
+    if (result.success) {
+      alert(`✅ ${side} executed!`);
+      await refresh(); // 🔁 Refetch data after successful trade
+    } else {
+      alert("❌ Trade failed");
+    }
   };
 
   return (

@@ -14,6 +14,7 @@ const HomePage = () => {
     const searchParams = useSearchParams();
     const reportLink = searchParams.get('url');
     const company = searchParams.get('company');
+    console.log("🧪 Company from URL:", company);
     const ticker = searchParams.get('ticker');
     const cik = searchParams.get('cik');
     const source = searchParams.get('source'); // "india" if from Screener.in
@@ -90,9 +91,9 @@ const HomePage = () => {
       }, [reportLink]);
   
     return (
-        <div className="flex h-screen relative">
+        <div className="flex h-screen relative ">
         {/* Left half: PDF viewer */}
-        <div className="w-1/2 bg-base-100 border-r border-base-300 p-4 bg-gray-50">
+        <div className="w-1/2 bg-base-100 border-r border-base-300 p-8 bg-gray-50">
             <h1 className="text-2xl font-bold mb-4">
             {ticker} Annual Report 
             </h1>
@@ -111,7 +112,7 @@ const HomePage = () => {
 
         {/* Right half */}
         <div className="w-1/2 p-4">
-            <p className="text-xl font-semibold mb-2">Insider Trading</p>
+            <p className="text-lg font-semibold mt-6">Insider Trading</p>
             {insiderSummary ? (
                 <InsiderTradingSection insiderSummary={insiderSummary} />
                 ) : (
@@ -128,7 +129,7 @@ const HomePage = () => {
 
         {/* Floating Button */}
         <button
-            className="btn btn-primary rounded-full fixed bottom-6 right-6 shadow-lg gap-2"
+            className="btn btn-primary rounded-full fixed bottom-6 right-6 shadow-lg gap-2 border-transparent bg-green-500 hover:bg-green-800 transition-colors"
             onClick={() => setOpenModal(true)}
         >
             <MessageSquare className="w-5 h-5" />
