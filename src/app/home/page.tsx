@@ -2,14 +2,26 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import ChatbotModal from '@/app/components/chatbotModal';
+import ChatbotModalEverything from '@/app/components/chatbotModalEverything';
 import { MessageSquare } from "lucide-react";
 import { InsiderTradingSection, InsiderSummary } from '@/app/components/insidertrading';
 import GlobalNewsWithSentiment from '@/app/components/globalNews';
+import ChatbotModal from '../components/chatbotModal';
+
+const sanitizeEmbedding = (embeddingArray: number[]) => {
+  const MAX_SAFE = 1e100;
+  const MIN_SAFE = -1e100;
+  return embeddingArray.map(value => {
+    if (value === null || value === undefined || isNaN(value) || !isFinite(value)) {
+      return 0;
+    }
+    if (value > MAX_SAFE) return MAX_SAFE;
+    if (value < MIN_SAFE) return MIN_SAFE;
+    return value;
+  });
+};
 
 const HomePage = () => {
-
-
 
     const searchParams = useSearchParams();
     const reportLink = searchParams.get('url');
@@ -18,7 +30,7 @@ const HomePage = () => {
     const ticker = searchParams.get('ticker');
     const cik = searchParams.get('cik');
     const source = searchParams.get('source'); // "india" if from Screener.in
-    const style = searchParams.get("style") || "long";
+    const strategy = searchParams.get("strategy") || "long";
 
     const isIndia = source === "india";
 
@@ -79,16 +91,112 @@ const HomePage = () => {
             } else {
               const htmlText = await res.text();
               sessionStorage.setItem("reportHTML", htmlText);
+                const embedRes = await fetch("/api/generate-embeddings", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ reportHtml: htmlText }),
+                });
+                const embedJson = await embedRes.json();
+                if (embedJson?.embedding) {
+                    sessionStorage.setItem("reportEmbedding", JSON.stringify(embedJson.embedding));
+                    console.log("🧠 Stored reportEmbedding to sessionStorage");
+                }
             }
       
             console.log("📦 Report saved to sessionStorage");
-          } catch (err) {
+          } catch (err) {   
             console.error("❌ Failed to fetch or store report:", err);
           }
         };
       
-        fetchReportToStorage();
-      }, [reportLink]);
+      fetchReportToStorage();
+    }, [reportLink]);
+
+    useEffect(() => {
+      const tryPredict = async () => {
+        let retries = 0;
+        while (!sessionStorage.getItem("reportEmbedding") && retries < 10) {
+          await new Promise((r) => setTimeout(r, 300)); // wait 300ms
+          retries++;
+        }
+
+        const reportEmbedding = sessionStorage.getItem("reportEmbedding");
+        console.log("📦 Raw reportEmbedding from sessionStorage:", reportEmbedding);
+        const sentimentScores = sessionStorage.getItem("sentimentScores");
+        if (!reportEmbedding) {
+          console.warn("❌ reportEmbedding not ready after retrying");
+          return;
+        }
+
+        let safeEmbedding: number[] = [];
+
+        try {
+          const rawEmbedding = JSON.parse(reportEmbedding);
+          console.log("🧪 Pre-sanitization embedding sample (first 5):", rawEmbedding.slice(0, 5));
+          safeEmbedding = sanitizeEmbedding(rawEmbedding);
+          console.log("✅ Post-sanitization embedding sample (first 5):", safeEmbedding.slice(0, 5));
+        } catch (error) {
+          console.error("Error parsing embedding:", error);
+
+          try {
+            const sanitizedString = reportEmbedding
+              .replace(/NaN/g, "0")
+              .replace(/-?Infinity/g, "0");
+            
+            const rawEmbedding = JSON.parse(sanitizedString);
+            console.log("🧪 Fallback: pre-sanitization embedding sample (first 5):", rawEmbedding.slice(0, 5));
+            safeEmbedding = sanitizeEmbedding(rawEmbedding);
+            console.log("✅ Fallback: post-sanitization embedding sample (first 5):", safeEmbedding.slice(0, 5));
+          } catch (secondError) {
+            console.error("Failed to sanitize and parse embedding:", secondError);
+            return;
+          }
+        }
+        const sanitizeForJSON = (obj: any): any => {
+          if (Array.isArray(obj)) {
+            return obj.map(sanitizeForJSON);
+          } else if (obj && typeof obj === 'object') {
+            return Object.fromEntries(
+              Object.entries(obj).map(([k, v]) => [k, sanitizeForJSON(v)])
+            );
+          } else if (typeof obj === 'number') {
+            if (!isFinite(obj) || isNaN(obj)) return 0;
+            return Math.min(Math.max(obj, -1e100), 1e100); // clamp extreme floats
+          }
+          return obj;
+        };
+
+        let payload;
+        try {
+          payload = JSON.stringify(
+            sanitizeForJSON({
+              ticker,
+              strategy,
+              sentiment_scores: sentimentScores ? JSON.parse(sentimentScores) : [],
+              report_embedding: safeEmbedding,
+            })
+          );
+          console.log("🧪 JSON payload created successfully");
+        } catch (e) {
+          console.error("❌ Failed to stringify payload:", e);
+          return;
+        }
+
+        console.log("🚀 Sending payload to /api/predict:", payload);
+        try {
+          const response = await fetch("/api/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: payload,
+          });
+
+          const prediction = await response.json();
+        } catch (err) {
+          console.error("❌ Error sending prediction request:", err);
+        }
+      };
+      tryPredict();
+    }, []);
   
     return (
         <div className="flex h-screen relative ">
@@ -135,8 +243,12 @@ const HomePage = () => {
             <MessageSquare className="w-5 h-5" />
         </button>
 
-        {/* Chatbot Modal */}
-        <ChatbotModal isOpen={openModal} onClose={() => setOpenModal(false)} />
+        
+        {isIndia ? (
+            <ChatbotModal isOpen={openModal} onClose={() => setOpenModal(false)} />
+        ) : (
+            <ChatbotModalEverything isOpen={openModal} onClose={() => setOpenModal(false)} />
+        )}
         </div>
     );
 };
