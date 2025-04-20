@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useEffect } from "react";
 
 export type InsiderSummary = {
   summary: string;
@@ -18,22 +20,25 @@ export type InsiderSummary = {
 };
 
 export const InsiderTradingSection = ({ insiderSummary }: { insiderSummary: InsiderSummary }) => {
+  useEffect(() => {
+    console.log("🧾 Insider Summary received:", insiderSummary);
+    console.log("🧠 Summary:", insiderSummary?.summary);
+    console.log("🧑‍💼 Key Actions:", insiderSummary?.key_actions);
+    console.log("📊 Totals:", insiderSummary?.totals);
+    console.log("📈 Conclusion:", insiderSummary?.conclusion);
+  }, [insiderSummary]);
+
   return (
     <div tabIndex={0} className="collapse collapse-arrow bg-slate-100 rounded-2xl shadow">
       <div className="collapse-title text-xl font-semibold">
         <div className="space-y-6 pt-2">
-            <h3 className="text-lg font-semibold text-green-700">Summary</h3>
-            <p className="text-sm text-gray-700 mt-2">{insiderSummary?.summary || "No summary available."}</p>
-          </div>
+          <h3 className="text-lg font-semibold text-green-700">Summary</h3>
+          <p className="text-sm text-gray-700 mt-2">{insiderSummary?.summary || "No summary available."}</p>
+        </div>
       </div>
-      
+
       <div className="collapse-content">
         <div className="space-y-6 pt-2">
-          {/* <div>
-            <h3 className="text-lg font-semibold text-green-700">Summary</h3>
-            <p className="text-sm text-gray-700 mt-2">{insiderSummary?.summary || "No summary available."}</p>
-          </div> */}
-
           <div>
             <h3 className="text-lg font-semibold text-green-700">Key Insider Actions</h3>
             <div className="overflow-auto mt-2">
