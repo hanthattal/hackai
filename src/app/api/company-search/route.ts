@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     const data = await res.json();
-  console.log("SEC data returned:", Array.isArray(data), data[0]);
+  //console.log("SEC data returned:", Array.isArray(data), data[0]);
   return NextResponse.json(data);
   } catch (err) {
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });

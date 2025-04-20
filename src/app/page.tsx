@@ -8,6 +8,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [isIndia, setIsIndia] = useState(false);
+  const [investmentStyle, setInvestmentStyle] = useState("long");
 
   const router = useRouter();
 
@@ -41,7 +42,7 @@ export default function Home() {
         const docLink = knownPDFs[ticker];
 
         router.push(
-          `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india`
+          `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyName)}&ticker=${ticker}&source=india&style=${investmentStyle}`
         );
         return;
       }
@@ -85,7 +86,7 @@ export default function Home() {
       const docLink = `https://www.sec.gov/Archives/edgar/data/${parseInt(cik)}/${accessionNumber}/${primaryDocument}`;
 
       router.push(
-        `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}`
+        `/home?url=${encodeURIComponent(docLink)}&company=${encodeURIComponent(companyEntry.title)}&ticker=${encodeURIComponent(companyEntry.ticker)}&cik=${companyEntry.cik}&style=${investmentStyle}`
       );
     } catch (err: any) {
       console.error("Error fetching report:", err);
@@ -98,6 +99,50 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <form onSubmit={searchAnnualReport} className="flex flex-col items-center space-y-4 w-full max-w-md">
+        
+      <div className="form-control w-full">
+  <label className="label">
+    <span className="label-text">Select Investing Style</span>
+  </label>
+  <div className="flex w-full justify-between space-x-2">
+    <label className="flex-1">
+      <input
+        type="radio"
+        name="style"
+        value="long"
+        className="btn w-full"
+        checked={investmentStyle === "long"}
+        onChange={() => setInvestmentStyle("long")}
+      />
+      <span className="block text-center mt-1 text-sm">📈 Long</span>
+    </label>
+
+    <label className="flex-1">
+      <input
+        type="radio"
+        name="style"
+        value="short"
+        className="btn w-full"
+        checked={investmentStyle === "short"}
+        onChange={() => setInvestmentStyle("short")}
+      />
+      <span className="block text-center mt-1 text-sm">📉 Short</span>
+    </label>
+
+    <label className="flex-1">
+      <input
+        type="radio"
+        name="style"
+        value="trading"
+        className="btn w-full"
+        checked={investmentStyle === "trading"}
+        onChange={() => setInvestmentStyle("trading")}
+      />
+      <span className="block text-center mt-1 text-sm">⚡ Trading</span>
+    </label>
+  </div>
+</div>
+
         <label className="label cursor-pointer">
           🇺🇸
           <input
