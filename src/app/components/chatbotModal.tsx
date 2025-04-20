@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 
 type Props = {
   isOpen: boolean;
@@ -8,36 +8,31 @@ type Props = {
 };
 
 const ChatbotModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const [question, setQuestion] = useState<string>("");
+  const [answer, setAnswer] = useState<string>("");
+
   if (!isOpen) return null;
 
-  useEffect(() => {
-    const fetchEmbedding = async () => {
-      try {
-        const res = await fetch("https://api.openai.com/v1/embeddings", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            input: "2023 was a strong year with increased revenue and net margin growth...",
-            model: "text-embedding-ada-002",
-          }),
-        });
-
-        const data = await res.json();
-        const embedding = data?.data?.[0]?.embedding;
-        if (embedding) {
-          sessionStorage.setItem("reportEmbedding", JSON.stringify(embedding));
-          console.log("✅ Stored OpenAI embedding in sessionStorage.");
-        }
-      } catch (err) {
-        console.error("❌ Failed to fetch OpenAI embedding", err);
-      }
-    };
-
-    fetchEmbedding();
-  }, []);
+  const handleAsk = async () => {
+    console.log("🟡 handleAsk triggered with question:", question); // ← ADD THIS
+  
+    try {
+      const res = await fetch("http://localhost:8000/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ query: question }),
+      });
+  
+      const data = await res.json();
+      setAnswer(data.answer);
+    } catch (err) {
+      console.error("❌ Error calling backend:", err);
+    }
+  };
+  
+  
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
@@ -49,9 +44,26 @@ const ChatbotModal: React.FC<Props> = ({ isOpen, onClose }) => {
           ✕
         </button>
         <h2 className="text-2xl font-bold mb-4">Chatbot Assistant</h2>
-        <div className="w-full h-full overflow-auto">
-          <p className="text-gray-500">This space will host your chatbot interface.</p>
+        <div className="mb-4">
+          <input
+            type="text"
+            className="input input-bordered w-full"
+            placeholder="Ask a question..."
+            value={question}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setQuestion(e.target.value)
+            }
+          />
+          <button className="btn btn-primary mt-2" onClick={handleAsk}>
+            Ask
+          </button>
+
         </div>
+        {answer && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg text-black">
+            <strong>Answer:</strong> {answer}
+          </div>
+        )}
       </div>
     </div>
   );
